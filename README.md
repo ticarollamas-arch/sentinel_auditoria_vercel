@@ -1,37 +1,23 @@
-# Sentinel — Auditoria externa para Vercel
+# Sentinel 3.0 — auditoria externa baseada em evidências
 
-Aplicação web responsiva com função serverless `/api/scan`, pronta para deploy na Vercel.
+## Correção do Failed to fetch
 
-## O que verifica
-- Resolução DNS e conexão HTTPS do domínio público.
-- Cabeçalhos HTTP relevantes, apresentados como observações (não como críticas automáticas).
-- Exposições públicas com evidência de conteúdo em `/.env`, `/.git/config`, `/backup.zip` e `/database.sql`.
-- Resumo técnico em português via Gemini API, quando a chave está configurada.
-- Exportação do relatório em JSON.
+Esta versão inclui `/api/health` para confirmar que as funções serverless foram publicadas, mensagens de erro legíveis no painel e timeouts menores com concorrência controlada para reduzir falhas por duração da função.
 
-## Limites técnicos
-A análise é externa, limitada e não intrusiva: requisições GET, sem login, força bruta, exploração, upload, alteração ou varredura de portas. O conjunto de caminhos verificados é pequeno e explícito. Um resultado sem achados não prova que o domínio esteja seguro. Para auditoria empresarial completa, complemente com SAST, DAST autenticado autorizado, revisão de código e testes especializados.
+**Configuração importante na Vercel:** em Project Settings → General → Root Directory, selecione `sentinel-v2` (ou importe diretamente essa pasta como projeto). Depois faça Redeploy. A pasta `api` precisa ficar diretamente dentro da raiz publicada.
 
-## Publicar na Vercel
-1. Extraia o ZIP e envie a pasta para um repositório Git ou importe-a na Vercel.
-2. Em **Project → Settings → Environment Variables**, adicione:
-   - `GEMINI_API_KEY`: sua chave da API Gemini.
-   - `GEMINI_MODEL`: opcional; padrão `gemini-2.5-flash`.
-3. Faça o deploy. A Vercel publica `index.html` e disponibiliza automaticamente a rota `POST /api/scan` pelo arquivo `api/scan.js`.
-4. Abra o domínio publicado, informe um domínio que você tem autorização para auditar e marque a confirmação.
+Teste a API abrindo `https://SEU-DOMINIO/api/health`. Deve aparecer JSON com `"ok": true`. Se retornar 404, a Root Directory está incorreta ou o deploy ainda não publicou as funções.
 
-## Testar localmente
-Requer Node.js 20+ e Vercel CLI:
-```bash
-npm install
-npx vercel dev
-```
+## Variáveis opcionais de IA
 
-## Custos Gemini
-A chave fica exclusivamente no servidor Vercel, nunca no navegador. O Gemini é chamado uma vez por auditoria. Configure limites e alertas de uso no Google AI Studio/Google Cloud. A aplicação não promete encontrar todas as vulnerabilidades críticas e não inventa achados.
+- OpenAI: `OPENAI_API_KEY`; opcional `OPENAI_MODEL` (padrão `gpt-6-luna`).
+- Gemini: `GEMINI_API_KEY`; opcional `GEMINI_MODEL` (padrão `gemini-2.5-flash`).
+- Se ambas existirem, OpenAI tem prioridade. A IA só interpreta o relatório; não determina nem inventa achados.
 
-## Segurança operacional
-- Não coloque a chave no `index.html`, `app.js` ou no Git.
-- Não remova a validação de destinos públicos nem o bloqueio de redirecionamentos.
-- O limite de requisições deve ser reforçado com rate limiting externo em produção (por exemplo, proteção da plataforma/WAF); memória local da função serverless não é um limitador confiável.
-- Use somente em domínios sob sua propriedade ou com autorização documentada.
+## Execução local
+
+Node.js 20+: `npm install` e `npx vercel dev`.
+
+## Limites
+
+Somente domínios próprios ou autorizados. Requisições HTTPS GET para caminhos públicos conhecidos, sem autenticação, exploração, força bruta, upload, alteração de dados ou varredura de portas. As verificações têm timeout de 2,2 segundos e concorrência limitada. Achados críticos exigem evidência compatível; ausência de achados não comprova segurança. Para cobertura completa, complemente com DAST autenticado autorizado, SAST, revisão de código e pentest.
